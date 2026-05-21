@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Математическое Казино | Проект 7 класс</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --accent: #3b82f6;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --gold: #fbbf24;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: linear-gradient(135deg, #1e3a8a, #312e81);
+      border-radius: 12px;
+    }
+    header h1 { margin: 0; color: var(--gold); font-size: 28px; }
+    header p { color: #cbd5e1; margin-top: 5px; }
+    
+    .player-bar {
+      background: var(--card);
+      padding: 12px 20px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    }
+    .chips {
+      font-size: 20px;
+      font-weight: bold;
+      color: var(--gold);
+    }
+    .chips span { font-size: 28px; }
+
+    nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    nav button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid #334155;
+      padding: 10px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 14px;
+    }
+    nav button:hover, nav button.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .game-panel {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      display: none;
+    }
+    .game-panel.active { display: block; }
+    .game-panel h2 { color: var(🎰 Рулетка)var(--gold); margin-top: 0; border-bottom: 2px solid #334155; padding-bottom: 8px; }
+
+    input, select, button.action {
+      background: #0f172a;
+      color: var(--text);
+      border: 1px solid #475569;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      margin: 5px 0;
+    }
+    button.action {
+      background: var(--accent);
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    button.action:hover { background: #2563eb; }
+    button.secondary { background: #475569; }
+    button.danger { background: var(--danger); }
+    button.success { background: var(--success); }
+
+    .bet-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    .bet-controls input { max-width: 80px; text-align: center; }
+    
+    .result-box {
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+      border-left: 4px solid var(--accent);
+      min-height: 60px;
+    }
+    .correct { border-left-color: var(--success); background: #052e16; }
+    .wrong { border-left-color: var(--danger); background: #450a0a; }
+
+    /* ROULETTE */
+    .wheel-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px 0;
+      position: relative;
+    }
+    .wheel {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: conic-gradient(#ef4444 0% 33%, #f59e0b 33% 66%, #22c55e 66% 100%);
+      border: 4px solid #fff;
+      position: relative;
+      transition: transform 2s cubic-bezier(0.25, 1, 0.5, 1);
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+    .wheel::after {
+      content: "▼";
+      position: absolute;
+      top: -15px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      color: var(--gold);
+    }
+    .wheel-center {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1e293b;
+      color: white;
+      padding: 10px;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border: 2px solid #475569;
+    }
+
+    /* BLACKJACK */
+    .hand {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 15px 0;
+      min-height: 80px;
+    }
+    .card {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      color: #0f172a;
+      padding: 10px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 18px;
+      border: 2px solid #cbd5e1;
+      min-width: 60px;
+      text-align: center;
+    }
+    .card.bust { border-color: var(--danger); background: #fecaca; color: #991b1b; }
+
+    /* DICE */
+    .dice-area {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+      font-size: 40px;
+    }
+    .dice {
+      width: 60px;
+      height: 60px;
+      background: white;
+      color: black;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* STATS & EXPORT */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    th, td {
+      border: 1px solid #475569;
+      padding: 8px;
+      text-align: center;
+    }
+    th { background: #1e3a8a; color: white; }
+    
+    #reportPreview {
+      display: none;
+      background: white;
+      color: black;
+      padding: 40px;
+      margin: 20px auto;
+      max-width: 800px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    }
+    #reportPreview h1, #reportPreview h2 { color: #1e3a8a; }
+    #reportPreview table { border: 1px solid #ccc; }
+    #reportPreview th, #reportPreview td { border: 1px solid #ddd; padding: 8px; }
+    
+    footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #64748b;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎓 Математическое Казино</h1>
+  <p>Проект для 7 класса: «Математика вместо удачи»</p>
+</header>
+
+<div class="player-bar">
+  <div>👤 Игрок: <span id="playerName">Ученик</span></div>
+  <div>💰 Баланс: <span class="chips"><span id="balance">10</span> фишек</span></div>
+  <div>🎯 Статус: <span id="statusText">Готов к игре</span></div>
+</div>
+
+<nav>
+  <button onclick="showGame('roulette')" id="btn-roulette">🎰 Рулетка</button>
+  <button onclick="showGame('blackjack')" id="btn-blackjack">🃏 Блэкджек (дроби)</button>
+  <button onclick="showGame('dice')" id="btn-dice">🎲 Кости вероятности</button>
+  <button onclick="showGame('stats')" id="btn-stats">📊 Статистика</button>
+  <button onclick="showGame('export')" id="btn-export">📤 Отчёт</button>
+</nav>
+
+<main>
+  <!-- ROULETTE -->
+  <div id="roulette" class="game-panel active">
+    <h2>🎰 Математическая рулетка</h2>
+    <p>Крутите колесо, решайте задачу. Верный ответ = ставка × 2. Ошибка = потеря ставки.</p>
+    <div class="wheel-container">
+      <div class="wheel" id="wheel">
+        <div class="wheel-center">?</div>
+      </div>
+    </div>
+    <div id="rouletteTask" class="result-box">Нажмите «Крутить», чтобы получить задание</div>
+    <div class="bet-controls">
+      <label>Ставка:</label>
+      <input type="number" id="rouletteBet" min="1" max="10" value="1">
+      <button class="action" onclick="spinWheel()">🎡 Крутить</button>
+      <button class="action success" onclick="checkRoulette()" id="rouletteCheckBtn" disabled>✅ Ответить</button>
+    </div>
+    <input type="text" id="rouletteAns" placeholder="Введите ответ (число или дробь, напр. 1/2 или 0.5)">
+  </div>
+
+  <!-- BLACKJACK -->
+  <div id="blackjack" class="game-panel">
+    <h2>🃏 Блэкджек с дробями</h2>
+    <p>Набирайте дробную сумму, максимально близкую к 1, но не больше. Чем ближе к 1, тем больше выигрыш!</p>
+    <div class="hand" id="bjHand"></div>
+    <div class="result-box" id="bjInfo">Сумма: <b id="bjSum">0</b></div>
+    <div class="bet-controls">
+      <label>Ставка:</label>
+      <input type="number" id="bjBet" min="1" max="10" value="1">
+      <button class="action" onclick="bjHit()">🃏 Ещё карту</button>
+      <button class="action success" onclick="bjStand()" id="bjStandBtn" disabled>🛑 Хватит</button>
+      <button class="action danger" onclick="bjRestart()">🔄 Новая игра</button>
+    </div>
+  </div>
+
+  <!-- DICE -->
+  <div id="dice" class="game-panel">
+    <h2>🎲 Кости вероятности</h2>
+    <p>Бросьте 2 кубика. Определите вероятность события. Верный ответ = ставка × обратная вероятность.</p>
+    <div class="dice-area">
+      <div class="dice" id="d1">?</div>
+      <div class="dice" id="d2">?</div>
+    </div>
+    <div id="diceTask" class="result-box">Нажмите «Бросить», чтобы начать</div>
+    <div class="bet-controls">
+      <label>Ставка:</label>
+      <input type="number" id="diceBet" min="1" max="10" value="1">
+      <button class="action" onclick="rollDice()">🎲 Бросить</button>
+      <button class="action success" onclick="checkDice()" id="diceCheckBtn" disabled>✅ Ответить</button>
+    </div>
+    <input type="text" id="diceAns" placeholder="Вероятность (напр. 1/6, 0.5, 50%)">
+  </div>
+
+  <!-- STATS -->
+  <div id="stats" class="game-panel">
+    <h2>📊 Статистика игры</h2>
+    <table id="statsTable">
+      <thead><tr><th>Игра</th><th>Раундов</th><th>Выиграно</th><th>Проиграно</th><th>Точность</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="result-box" id="statsSummary">Сыграйте хотя бы 1 раз, чтобы увидеть статистику.</div>
+  </div>
+
+  <!-- EXPORT -->
+  <div id="export" class="game-panel">
+    <h2>📤 Экспорт отчёта для проекта</h2>
+    <p>Сформируйте официальный отчёт с расчётами, правилами и вашими результатами.</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="action danger" onclick="exportToPDF()">📄 Скачать PDF</button>
+      <button class="action" onclick="exportToWord()">📝 Скачать Word</button>
+      <button class="action success" onclick="window.print()">🖨️ Печать</button>
+    </div>
+    <div class="result-box" style="margin-top:15px; font-size:13px;">
+      <b>💡 Совет:</b> Используйте отчёт для защиты проекта. В нём уже оформлены цели, формулы, таблица результатов и рефлексия.
+    </div>
+  </div>
+</main>
+
+<div id="reportPreview">
+  <h1>Отчёт: Математическое Казино</h1>
+  <p><b>Класс:</b> 7 | <b>Дата:</b> <span id="reportDate"></span></p>
+  <h2>1. Цель проекта</h2>
+  <p>Показать, что математика может быть увлекательной, развить навыки быстрого счёта, логики и работы с вероятностями, дробями и процентами.</p>
+  <h2>2. Правила игр</h2>
+  <ul>
+    <li><b>Рулетка:</b> Случайная задача (% или дроби/уравнения). Верный ответ = +2×ставка</li>
+    <li><b>Блэкджек:</b> Набрать сумму дробей ≤ 1. Выигрыш зависит от близости к 1</li>
+    <li><b>Кости:</b> Бросок 2 кубиков. Верный расчёт вероятности = +обратная вероятность × ставка</li>
+  </ul>
+  <h2>3. Результаты</h2>
+  <div id="reportStats"></div>
+  <h2>4. Математические формулы</h2>
+  <div style="background:#f4f4f4; padding:10px; border-left:4px solid #3b82f6;">
+    • Вероятность = Благоприятные исходы / Всего исходов<br>
+    • Сложение дробей: a/b + c/d = (ad + bc) / bd<br>
+    • Процент от числа: P% от N = (P × N) / 100
+  </div>
+  <h2>5. Рефлексия (заполняется игроком)</h2>
+  <p>Что нового узнал: _________________________________________________</p>
+  <p>Какая игра понравилась больше: ____________________________________</p>
+  <p>Как справлялся со сложностью: _____________________________________</p>
+  <p>Где пригодится: __________________________________________________</p>
+  <p style="margin-top:30px; text-align:center; color:#666; font-size:12px;">Проект по математике | 7 класс</p>
+</div>
+
+<footer>Интерактивный симулятор для учебного проекта | Все «ставки» виртуальные</footer>
+
+<script>
+  // === STATE ===
+  let state = {
+    name: 'Ученик',
+    chips: 10,
+    stats: {
+      roulette: { played:0, win:0, loss:0 },
+      blackjack: { played:0, win:0, loss:0 },
+      dice: { played:0, win:0, loss:0 }
+    }
+  };
+
+  let currentGame = {
+    type: null,
+    task: null,
+    bet: 0,
+    answer: null,
+    isResolved: false
+  };
+
+  let bjState = {
+    hand: [],
+    sumNum: 0, sumDen: 1,
+    active: false
+  };
+
+  // === UTILS ===
+  function updateUI() {
+    document.getElementById('balance').textContent = state.chips;
+    document.getElementById('statusText').textContent = state.chips > 0 ? 'Играйте!' : '💸 Баланс 0. Обновите страницу.';
+    renderStats();
+  }
+
+  function showGame(id) {
+    document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.getElementById('btn-' + id).classList.add('active');
+    if (id === 'stats') renderStats();
+  }
+
+  function gcd(a, b) { return b ? gcd(b, a % b) : a; }
+  function simplify(n, d) {
+    if (d < 0) { n = -n; d = -d; }
+    let g = gcd(Math.abs(n), Math.abs(d));
+    return [n/g, d/g];
+  }
+  function addFrac(n1, d1, n2, d2) {
+    return simplify(n1*d2 + n2*d1, d1*d2);
+  }
+  function parseFraction(val) {
+    val = val.trim().replace(/,/g, '.').replace(/%/g, '');
+    if (/^\d*\.?\d*$/.test(val)) {
+      return parseFloat(val);
+    } else if (/^\d+\/\d+$/.test(val)) {
+      let [n, d] = val.split('/').map(Number);
+      return d !== 0 ? n/d : NaN;
+    }
+    return NaN;
+  }
+
+  // === ROULETTE ===
+  const rouletteTasks = [
+    { q: "20% от 150", a: 30 },
+    { q: "Найди x: 2x + 4 = 10", a: 3 },
+    { q: "1/3 + 1/6", a: 0.5 },
+    { q: "30% от 60", a: 18 },
+    { q: "Найди x: 3x - 5 = 10", a: 5 },
+    { q: "2/5 + 1/10", a: 0.5 },
+    { q: "50% от 84", a: 42 },
+    { q: "Найди x: 4x + 8 = 24", a: 4 }
+  ];
+
+  function spinWheel() {
+    let bet = parseInt(document.getElementById('rouletteBet').value);
+    if (state.chips < bet || bet <= 0) return alert('Недостаточно фишек или неверная ставка!');
+    
+    state.chips -= bet;
+    currentGame = { type: 'roulette', bet, task: rouletteTasks[Math.floor(Math.random()*rouletteTasks.length)], answer: null, isResolved: false };
+    
+    const wheel = document.getElementById('wheel');
+    const deg = 360 * 3 + Math.random() * 360;
+    wheel.style.transform = `rotate(${deg}deg)`;
+    
+    setTimeout(() => {
+      document.getElementById('rouletteTask').innerHTML = `<b>Задание:</b> ${currentGame.task.q}`;
+      document.getElementById('rouletteCheckBtn').disabled = false;
+      document.getElementById('rouletteAns').value = '';
+      updateUI();
+    }, 2100);
+  }
+
+  function checkRoulette() {
+    if (currentGame.isResolved) return;
+    let input = document.getElementById('rouletteAns').value;
+    let val = parseFraction(input);
+    if (isNaN(val)) return alert('Введите число или дробь!');
+    
+    let correct = currentGame.task.a;
+    let box = document.getElementById('rouletteTask');
+    currentGame.isResolved = true;
+    
+    if (Math.abs(parseFloat(val.toFixed(2)) - parseFloat(correct.toFixed(2))) < 0.01) {
+      state.chips += currentGame.bet * 2;
+      state.stats.roulette.win++;
+      box.innerHTML += `<br><span class="status ok">✅ Верно! +${currentGame.bet} фишек</span>`;
+    } else {
+      state.stats.roulette.loss++;
+      box.innerHTML += `<br><span class="status error">❌ Ошибка. Правильный ответ: ${correct}</span>`;
+    }
+    state.stats.roulette.played++;
+    updateUI();
+    document.getElementById('rouletteCheckBtn').disabled = true;
+  }
+
+  // === BLACKJACK ===
+  const bjCards = [
+    {n:1, d:2, v:0.5}, {n:1, d:3, v:0.333}, {n:1, d:4, v:0.25}, {n:1, d:5, v:0.2},
+    {n:1, d:6, v:0.166}, {n:2, d:3, v:0.666}, {n:3, d:4, v:0.75}
+  ];
+
+  function bjRestart() {
+    let bet = parseInt(document.getElementById('bjBet').value);
+    if (state.chips < bet || bet <= 0) return alert('Недостаточно фишек!');
+    state.chips -= bet;
+    bjState = { hand: [], sumNum: 0, sumDen: 1, active: true };
+    currentGame = { type: 'blackjack', bet, task: null, answer: null, isResolved: false };
+    
+    document.getElementById('bjHand').innerHTML = ''; // Очистка рук
+    document.getElementById('bjSum').textContent = '0';
+    document.getElementById('bjInfo').className = 'result-box';
+    document.getElementById('bjStandBtn').disabled = true;
+    updateUI();
+  }
+
+  function bjHit() {
+    if (!bjState.active) return alert('Раунд завершён!');
+    let card = bjCards[Math.floor(Math.random() * bjCards.length)];
+    bjState.hand.push(card);
+    let [n, d] = addFrac(bjState.sumNum, bjState.sumDen, card.n, card.d);
+    bjState.sumNum = n; bjState.sumDen = d;
+    
+    // Создание элемента для новой карты
+    let cardElem = document.createElement('div');
+    cardElem.className = 'card';
+    cardElem.textContent = `${card.n}/${card.d}`; // Отображение дроби
+    document.getElementById('bjHand').appendChild(cardElem); // Добавление карты в руку
+    
+    document.getElementById('bjSum').textContent = `${bjState.sumNum}/${bjState.sumDen}`;
+    document.getElementById('bjStandBtn').disabled = false;
+    
+    if (bjState.sumNum >= bjState.sumDen) {
+      bjEnd(true); // Перебор
+    }
+  }
+
+  function bjStand() {
+    if (!bjState.active) return alert('Раунд завершён!');
+    bjEnd(false); // Завершение по желанию игрока
+  }
+
+  function bjEnd(isBust) {
+    bjState.active = false;
+    let box = document.getElementById('bjInfo');
+    let sumVal = bjState.sumNum / bjState.sumDen;
+    let payout = 0;
+    
+    if (isBust) {
+      state.stats.blackjack.loss++;
+      box.innerHTML = `💥 Перебор! Сумма превысила 1. Ставка потеряна.`;
+      box.className = 'result-box wrong';
+    } else {
+      state.stats.blackjack.played++;
+      // Линейный множитель выигрыша: от 0.5 (очень далеко от 1) до 3 (почти точно единица)
+      let diff = 1 - sumVal;
+      let multiplier = Math.max(0.5, 3 - diff * 2.5); // Плавная зависимость
+      payout = Math.round(currentGame.bet * multiplier);
+      state.chips += payout;
+      state.stats.blackjack.win++;
+      box.innerHTML = `✅ Остановлено. Сумма: ${bjState.sumNum}/${bjState.sumDen} (${sumVal.toFixed(3)})<br>💰 Выигрыш: +${payout} фишек (множитель ×${multiplier.toFixed(2)})`;
+      box.className = 'result-box correct';
+    }
+    updateUI();
+  }
+
+  // === DICE ===
+  const diceQuestions = [
+    { q: "Вероятность суммы = 7", ans: 1/6 },
+    { q: "Вероятность чётной суммы", ans: 1/2 },
+    { q: "Вероятность суммы > 9", ans: 1/6 },
+    { q: "Вероятность одинаковых чисел", ans: 1/6 },
+    { q: "Вероятность суммы ≤ 4", ans: 1/6 }
+  ];
+
+  function rollDice() {
+    let bet = parseInt(document.getElementById('diceBet').value);
+    if (state.chips < bet || bet <= 0) return alert('Недостаточно фишек!');
+    
+    state.chips -= bet;
+    let d1 = Math.ceil(Math.random()*6);
+    let d2 = Math.ceil(Math.random()*6);
+    let q = diceQuestions[Math.floor(Math.random()*diceQuestions.length)];
+    
+    currentGame = { type: 'dice', bet, task: q, answer: q.ans, isResolved: false };
+    
+    document.getElementById('d1').textContent = d1;
+    document.getElementById('d2').textContent = d2;
+    document.getElementById('diceTask').innerHTML = `<b>Вопрос:</b> ${q.q}<br><small>Сумма кубиков: ${d1+d2}</small>`;
+    document.getElementById('diceCheckBtn').disabled = false;
+    document.getElementById('diceAns').value = '';
+    updateUI();
+  }
+
+  function checkDice() {
+    if (currentGame.isResolved) return;
+    let input = document.getElementById('diceAns').value;
+    let val = parseFraction(input);
+    if (isNaN(val)) return alert('Введите вероятность (число, дробь или %)!');
+    
+    currentGame.isResolved = true;
+    let correct = currentGame.answer;
+    let box = document.getElementById('diceTask');
+    
+    if (Math.abs(parseFloat(val.toFixed(3)) - parseFloat(correct.toFixed(3))) < 0.005) {
+      let payout = Math.round(currentGame.bet * (1/correct));
+      state.chips += payout;
+      state.stats.dice.win++;
+      state.stats.dice.played++;
+      box.innerHTML += `<br><span class="status ok">✅ Верно! +${payout} фишек</span>`;
+    } else {
+      state.stats.dice.loss++;
+      state.stats.dice.played++;
+      box.innerHTML += `<br><span class="status error">❌ Ошибка. Правильный ответ: ${(correct*36).toFixed(1)}/36 ≈ ${correct.toFixed(3)}</span>`;
+    }
+    updateUI();
+    document.getElementById('diceCheckBtn').disabled = true;
+  }
+
+  // === STATS & REPORT ===
+  function renderStats() {
+    let t = document.getElementById('statsTable').querySelector('tbody');
+    t.innerHTML = '';
+    let totalP = 0, totalW = 0;
+    
+    for (let game in state.stats) {
+      let s = state.stats[game];
+      totalP += s.played; totalW += s.win;
+      let acc = s.played ? Math.round((s.win/s.played)*100) : 0;
+      t.innerHTML += `<tr>
+        <td>${game === 'roulette' ? '🎰 Рулетка' : game === 'blackjack' ? '🃏 Блэкджек' : '🎲 Кости'}</td>
+        <td>${s.played}</td><td>${s.win}</td><td>${s.loss}</td><td>${acc}%</td>
+      </tr>`;
+    }
+    let accTotal = totalP ? Math.round((totalW/totalP)*100) : 0;
+    document.getElementById('statsSummary').innerHTML = `
+      Всего игр: ${totalP} | Побед: ${totalW} | Общая точность: ${accTotal}%<br>
+      <i>Математика позволяет оценивать риски и принимать решения даже в игровых условиях.</i>
+    `;
+  }
+
+  function generateReportHTML() {
+    document.getElementById('reportDate').textContent = new Date().toLocaleString('ru-RU');
+    let t = document.getElementById('statsTable').querySelector('tbody');
+    document.getElementById('reportStats').innerHTML = t.outerHTML.replace(/style="[^"]*"/g, '').replace(/class="[^"]*"/g, '');
+  }
+
+  async function exportToPDF() {
+    if (state.stats.roulette.played + state.stats.blackjack.played + state.stats.dice.played === 0) return alert('Сначала сыграйте хотя бы 1 раз!');
+    generateReportHTML();
+    document.getElementById('reportPreview').style.display = 'block';
+    await new Promise(r => setTimeout(r, 500));
+    
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    const element = document.getElementById('reportPreview');
+    const canvas = await html2canvas(element, {scale: 2});
+    const imgData = canvas.toDataURL('image/png');
+    const imgWidth = 210, pageHeight = 297;
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    let heightLeft = imgHeight, position = 0;
+    
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save('math_casino_report.pdf');
+    document.getElementById('reportPreview').style.display = 'none';
+  }
+
+  function exportToWord() {
+    if (state.stats.roulette.played + state.stats.blackjack.played + state.stats.dice.played === 0) return alert('Сначала сыграйте хотя бы 1 раз!');
+    generateReportHTML();
+    const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Отчёт</title><style>body{font-family:Arial;font-size:12px;}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px}th{background:#1e3a8a;color:white}</style></head><body>";
+    const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(header + document.getElementById("reportPreview").innerHTML + "</body></html>");
+    const a = document.createElement("a");
+    document.body.appendChild(a);
+    a.href = source;
+    a.download = 'math_casino_report.doc';
+    a.click();
+    document.body.removeChild(a);
+  }
+
+  // Init
+  window.onload = function() { showGame('roulette'); updateUI(); };
+</script>
+</body>
+</html>
